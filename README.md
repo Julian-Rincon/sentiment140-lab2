@@ -26,7 +26,9 @@ Ver [MIEMBROS.md](MIEMBROS.md) para el mapeo `member_id` ↔ integrante ↔ Note
 | `reports/error_analysis.csv` / `.md` | ⏳ Pendiente |
 | `notebooks/experiment_audit.ipynb` | ⏳ Pendiente |
 
-El detalle de ejecución por fases está en [`PLAN.md`](PLAN.md).
+El detalle de ejecución por fases está en [`PLAN.md`](PLAN.md). Instrucciones para que cada integrante corra
+sus configuraciones asignadas desde su propia cuenta de AWS Academy están en
+[`GUIA_INTEGRANTES.md`](GUIA_INTEGRANTES.md).
 
 ## Arquitectura
 

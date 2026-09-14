@@ -81,12 +81,14 @@ del equipo repite este mismo procedimiento **cada uno en su propia cuenta** (Fas
 4. Con esto validado, **detener o eliminar la Notebook Instance** (no dejarla corriendo sin uso)
    y pasar a la Fase 4b.
 
-## Fase 4b — Documentar para el resto del equipo (cada uno en su propia cuenta)
+## Fase 4b — Documentar para el resto del equipo (cada uno en su propia cuenta) — ✅ RESUELTO
 
-1. Escribir instrucciones paso a paso (nueva sección en este README) para que Andrés (E02),
+1. ✅ Instrucciones paso a paso en [`GUIA_INTEGRANTES.md`](GUIA_INTEGRANTES.md) para que Andrés (E02),
    Juan (E03), Miguel (E04) y Paula (E05) repitan lo de la Fase 4 **cada uno en su propia
    cuenta individual de AWS Academy** — pedirle al profesor que los agregue si no la tienen.
-   Cada uno apunta su MLflow al mismo tracking server (`http://3.208.78.52:5000`), no crea uno propio.
+   Cada uno apunta su MLflow al mismo tracking server (`http://3.208.78.52:5000`), no crea uno propio —
+   basta con `MLFLOW_TRACKING_URI`, sin pasar por ninguna API intermedia; los resultados de todos se ven
+   abriendo esa misma URL en el navegador.
 2. Repartir las comparaciones obligatorias entre los 5 integrantes (mínimo 3
    configuraciones válidas cada uno, en al menos 2 etapas — ver sección 3 de
    la guía): preprocesamiento (`P_STOPWORDS`, `P_STOPWORDS_NEGATION`, `P_LEMMA`,
