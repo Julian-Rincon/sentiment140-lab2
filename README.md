@@ -1,18 +1,10 @@
 # Laboratorio II — Análisis de sentimientos (Sentiment140)
 
-Sistema de análisis binario de sentimientos sobre Sentiment140, comparado experimentalmente en 3 etapas
-(preprocesamiento → representación → clasificador), con trazabilidad completa en MLflow y despliegue en AWS.
-Implementa el contrato definido en la guía **"Análisis de sentimientos"** (Laboratorio II - 2026 S02, PLN,
-Universidad Sergio Arboleda) — ver [Importante/Laboratorio 2 - Análisis de Sentimientos.pdf](Importante/Laboratorio%202%20-%20Análisis%20de%20Sentimientos.pdf).
-
-Repositorio: **https://github.com/Julian-Rincon/sentiment140-lab2**
-
-> **Para retomar el trabajo**, seguir [`PLAN.md`](PLAN.md) en orden — las SageMaker Notebook Instances
-> se usan de último a propósito (ver sección "Bloqueos activos" abajo).
+Sistema de clasificación binaria de sentimientos (`negative` / `positive`) sobre el dataset **Sentiment140**, comparado experimentalmente en tres etapas (preprocesamiento → representación → clasificador), con trazabilidad completa en **MLflow** y despliegue en **AWS**. Implementa el contrato definido en la guía **"Análisis de sentimientos"** (Laboratorio II - 2026 S02, PLN, Universidad Sergio Arboleda) — ver [Importante/Laboratorio 2 - Análisis de Sentimientos.pdf](Importante/Laboratorio%202%20-%20Análisis%20de%20Sentimientos.pdf).
 
 ## Integrantes
 
-Ver [MIEMBROS.md](MIEMBROS.md) para el mapeo `member_id` ↔ integrante ↔ Notebook Instance asignada.
+Ver [MIEMBROS.md](MIEMBROS.md) para el mapeo `member_id` ↔ integrante ↔ Notebook Instance asignada (Anexo A.2).
 
 - Julián Rincón (E01)
 - Andrés Castro (E02)
@@ -20,51 +12,104 @@ Ver [MIEMBROS.md](MIEMBROS.md) para el mapeo `member_id` ↔ integrante ↔ Note
 - Miguel Flechas (E04)
 - Paula Caballero (E05)
 
-## Estado actual
+## Estado del proyecto
 
 | Componente | Estado |
 |---|---|
-| MLflow Tracking Server | ✅ Corriendo en EC2 m5.large `mlflow` (`http://3.208.78.52:5000`), `--serve-artifacts` + `--artifacts-destination` verificado con un run de prueba (artefacto subido, run `FINISHED`) |
-| SageMaker Notebook Instance | ⏳ Se crea **una sola** (Julián, E01), al final, para validar el pipeline end-to-end — ver "Cambio de estrategia" abajo |
-| Dataset (Sentiment140, revisión fija) | ✅ Cargado y verificado: 1.360.000 train / 240.000 test, coincide exacto con la guía |
-| Muestra estratificada (200.000, semilla 42) + 3 folds | ✅ Generados en `protocol/partitions.csv` (folds balanceados 66.667/66.667/66.666) |
-| `protocol/members.csv` | ✅ Generado con el mapeo de `MIEMBROS.md` |
-| Experimento `nlp-lab2-sentiment140` en MLflow | ⏳ Se recrea en el servidor nuevo (el anterior quedó en una cuenta desactivada) |
-| Código del pipeline (`pipeline/`: config, data, preprocessing, representation, classifier, mlflow_logging) | ✅ Escrito, probado localmente contra el dataset real |
-| API FastAPI (`api/main.py`: `/api/v1/predict`, `/audit/*`, `/health`) | ✅ Escrita contra el contrato del Anexo A.5, aún sin desplegar |
-| Run de protocolo registrado en MLflow (con artefactos) | ⏳ Pendiente de re-registrar en el servidor nuevo (ya no bloqueado) |
-| T0 / B0 / comparaciones obligatorias / ablación / modelo final | ❌ Pendiente |
-| `reports/error_analysis.csv` / `.md` | ❌ Pendiente |
+| Protocolo experimental (dataset, muestra, folds) | ✅ Fijado — 200.000 registros, semilla 42, 3 folds `StratifiedKFold` |
+| Run de protocolo en MLflow (Anexo A.2) | ✅ Registrado, único, `FINISHED`, con `protocol/partitions.csv` y `protocol/members.csv` |
+| MLflow Tracking Server | ✅ En producción, con `--serve-artifacts` |
+| Código del pipeline (`pipeline/`) | ✅ Implementado y validado localmente contra el dataset real |
+| API FastAPI (`api/main.py`) | ✅ Implementada contra el Anexo A.5, pendiente de despliegue público |
+| T0 / B0 y comparaciones obligatorias | ⏳ Pendiente de ejecución desde SageMaker |
+| Ablación y modelo final (`sentiment140@champion`) | ⏳ Pendiente |
+| `reports/error_analysis.csv` / `.md` | ⏳ Pendiente |
+| `notebooks/experiment_audit.ipynb` | ⏳ Pendiente |
 
-### Cambio de estrategia — una SageMaker por cuenta individual, no 5 en una cuenta
+El detalle de ejecución por fases está en [`PLAN.md`](PLAN.md).
 
-Dos cuentas de AWS Academy seguidas se desactivaron (`voc-cancel-cred`) al crear **5 SageMaker Notebook Instances simultáneas** dentro de una misma cuenta — la segunda vez incluso espaciando las creaciones ~20-30 min, lo que confirmó que el disparador es la **cantidad concurrente**, no la velocidad de creación.
-
-El profesor (Juan Pablo) confirmó por qué: **cada integrante del equipo debe tener su propia cuenta individual de AWS Academy**, y dentro de esa cuenta puede tener varios notebooks — no tiene sentido (ni el curso lo permite) que una sola cuenta sostenga 5 instancias SageMaker a la vez, "si esto fuera una cuenta empresarial, ¿sabes cuánto costaría eso?". Agregó a Julián a una cuenta nueva de forma individual, advirtiendo que si se vuelve a bloquear no podrá asignar otra.
-
-**Estrategia revisada:**
-1. Julián deja todo (Taller 1, servidor MLflow, código, protocolo) funcionando y verificado en su cuenta individual nueva.
-2. Al final — y solo al final — crea **una única** Notebook Instance propia para validar el pipeline completo end-to-end (T0/B0 con los folds reales, registro en MLflow con `notebook_arn` y metadata real).
-3. Con eso validado, se documenta el procedimiento exacto para que cada uno de los otros 4 integrantes lo repita **en su propia cuenta individual** (no en una compartida) — sección pendiente en este README una vez el paso 2 esté confirmado.
-
-Ver [`PLAN.md`](PLAN.md) para el detalle fase por fase.
-
-## Estructura
+## Arquitectura
 
 ```
 Actividad 2/
   Importante/           # guía oficial del laboratorio (PDF)
-  MIEMBROS.md           # mapeo member_id / integrante / notebook_arn
-  protocol/             # partitions.csv, members.csv (generados, ver pipeline/data.py)
-  notebooks/            # experiment_audit.ipynb (sustentación) — pendiente
-  reports/              # error_analysis.csv y .md (se llenan al final)
-  api/main.py           # FastAPI: /api/v1/predict, /audit/*, /health
-  pipeline/             # lógica compartida: config, data, preprocessing, representation, classifier, mlflow_logging
+  MIEMBROS.md           # mapeo member_id / integrante / notebook_arn (Anexo A.2)
+  PLAN.md               # plan de ejecución por fases
+  protocol/             # partitions.csv, members.csv — artefactos del run de protocolo
+  pipeline/             # lógica compartida
+    config.py               # configuraciones efectivas: T0, B0, comparaciones, ablación
+    data.py                 # carga del dataset, muestra estratificada, folds
+    preprocessing.py        # limpieza de texto (sección 3)
+    representation.py       # BoW / TF-IDF / embeddings spaCy (sección 3)
+    classifier.py            # construcción de clasificadores (DummyClassifier, LogReg, SVM, SGD)
+    mlflow_logging.py       # registro de runs — nombres exactos de tags/params/métricas/artefactos del Anexo A.2
+  api/main.py            # FastAPI: /api/v1/predict, /audit/*, /health (Anexo A.5)
+  notebooks/             # experiment_audit.ipynb (sustentación)
+  reports/               # error_analysis.csv / .md (análisis de errores del modelo final)
 ```
+
+La lógica de MLflow, validación y estructura de proyecto reutiliza los patrones ya probados en el
+[Laboratorio I](https://github.com/Julian-Rincon/nlp-pipeline-api) del equipo (validación estricta "todo o nada",
+respuesta JSON con codificación UTF-8 explícita, separación entre lógica de dominio y capa HTTP).
+
+## Protocolo experimental (sección 2 / Anexo A.2)
+
+- **Dataset**: `adilbekovich/Sentiment140Twitter`, revisión fija `b6037e127257d95b9b23d31f78b264b9ebe697fd` (1.360.000 registros de entrenamiento / 240.000 de prueba).
+- **Muestra**: 200.000 registros, muestreo estratificado, semilla 42.
+- **Validación cruzada**: `StratifiedKFold`, 3 folds, `shuffle=true`, semilla 42.
+- La muestra y los folds quedan fijados en un único run de protocolo (`lab_run_type=protocol`) del que dependen todas las comparaciones posteriores, referenciado desde cada run experimental mediante `lab_protocol_run_id`.
+
+| Tipo de run | Contenido |
+|---|---|
+| **Protocolo** | Params exactos `dataset_id`, `dataset_revision`, `sampling_strategy`, `sample_size`, `random_seed`, `cv_strategy`, `cv_folds`, `cv_shuffle`; artefactos `protocol/partitions.csv` y `protocol/members.csv`. |
+| **Experimental** (T0, B0, comparaciones, ablación) | Tags `lab_run_type=experiment`, `lab_protocol_run_id`, `lab_experiment_id`, `lab_stage`, `lab_member_id`, `lab_configuration_id`, `notebook_arn`; métricas `macro_f1_fold_0..2`, `macro_f1_mean`, `macro_f1_std`; artefactos `run/configuration.json` y `provenance/sagemaker-resource-metadata.json`. |
+| **Final** | Tags `lab_run_type=final`, `lab_protocol_run_id`, `lab_selected_experiment_run_id`, `lab_configuration_id`, `lab_member_id`, `notebook_arn`; param `training_size=1360000`; artefactos de configuración, procedencia y análisis de errores. Registra el modelo en el Model Registry como `sentiment140`, alias `champion`. |
+
+Cada integrante ejecuta sus runs experimentales desde su propio **SageMaker Notebook Instance** asignado por el curso — la procedencia (`provenance/sagemaker-resource-metadata.json`) se copia sin editar desde `/opt/ml/metadata/resource-metadata.json` de esa instancia.
+
+## Comparaciones obligatorias (sección 3)
+
+Cada integrante debe registrar al menos 3 configuraciones válidas en al menos 2 de las siguientes etapas, siempre partiendo de las decisiones de B0:
+
+| Etapa | Configuraciones |
+|---|---|
+| Preprocesamiento | `P_STOPWORDS`, `P_STOPWORDS_NEGATION`, `P_LEMMA`, `P_ELONGATION`, `P_EMOJI` |
+| Representación | `R_BOW`, `R_TFIDF_UNI`, `R_TFIDF_UNI_BI`, `R_SPACY` |
+| Clasificador | `C_LOGREG`, `C_LINEAR_SVM`, `C_SGD` |
+
+`R_SPACY` usa `en_core_web_md` (vectores preentrenados) con el vector de documento calculado como promedio de los vectores de token (`document_vector_method=mean_token_vectors`).
+
+## API (Anexo A.5)
+
+| Método y ruta | Contrato |
+|---|---|
+| `POST /api/v1/predict` | `{"text": string \| string[1..32]}` (máx. 1.000 caracteres por texto) → `{"model_run_id": string, "predictions": string[]}`, cada predicción `negative` o `positive`. Resuelve el modelo desde `sentiment140@champion`. |
+| `GET /audit/protocol` | Datos del run de protocolo: `protocol_run_id`, `dataset_id`, `dataset_revision`, `sampling_strategy`, `sample_size`, `random_seed`, `cv_strategy`, `cv_folds`, `cv_shuffle`, `partitions_artifact`, `members_artifact`. `409 protocol_not_unique` si no hay exactamente un protocolo. |
+| `GET /audit/runs` | Lista de todos los runs presentados (`run_id`, `status`, `run_type`, `params`, `metrics`, `tags`, `artifacts`, `configuration`), ordenada por `run_id`. |
+| `GET /audit/contributions` | Contribución por integrante (`member_id`, `notebook_arn`, `run_ids`, `counted_run_ids`, `configuration_ids`, `stages`, `valid_configurations`), más `invalid_run_ids` y `unattributed_run_ids`. |
+| `GET /audit/model` | Trazabilidad del modelo desplegado: `model_name=sentiment140`, `alias=champion`, `version`, `run_id`, `protocol_run_id`, `selected_experiment_run_id`, `configuration`, `training_size`, `test_macro_f1`. |
+| `GET /health` | Resuelve `sentiment140@champion` y verifica inferencia; `200` si está disponible, `503` si no. |
+
+Todos los endpoints JSON responden `application/json`. Los endpoints `/audit/*` consultan MLflow en tiempo de ejecución — si el Tracking Server no está disponible, responden `503 mlflow_unavailable` en vez de reconstruir la respuesta desde una copia local.
+
+## Validación (Anexo A.5)
+
+`/api/v1/predict` rechaza con `4xx`, sin resultados parciales: ausencia de `text`, `null`, string vacío o solo espacios, lista vacía, más de 32 elementos, textos de más de 1.000 caracteres, tipos distintos de string, o un lote con algún elemento inválido.
 
 ## Uso de inteligencia artificial generativa
 
-Conforme a la sección 7 de la guía: se usa Claude Code (Anthropic) para diseño de arquitectura, automatización
-de infraestructura AWS (SageMaker, MLflow, despliegue), implementación de la API y depuración. El clasificador
-final se entrena por el equipo con los datos del laboratorio, sin APIs externas ni modelos preajustados para
-la tarea. El equipo revisa el código y las recomendaciones antes de incorporarlas.
+Conforme a la sección 7 de la guía: se usa **Claude Code** (Anthropic) para diseño de arquitectura, automatización de infraestructura AWS (SageMaker, MLflow, despliegue), implementación de la API y depuración de errores. El clasificador final se entrena por el equipo con los datos del laboratorio, sin APIs externas ni modelos preajustados para la tarea — solo se permiten embeddings preentrenados como representación (`R_SPACY`). El equipo revisa el código y las recomendaciones antes de incorporarlas a la solución.
+
+## Correr localmente
+
+```bash
+pip install -r requirements.txt
+python -m spacy download en_core_web_md
+```
+
+```bash
+export MLFLOW_TRACKING_URI=http://<tracking-server>:5000
+uvicorn api.main:app --reload
+```
+
+Docs interactivas en `http://127.0.0.1:8000/docs`.
