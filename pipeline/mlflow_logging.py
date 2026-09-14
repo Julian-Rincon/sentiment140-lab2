@@ -29,7 +29,7 @@ def log_protocol_run(partitions_csv_path, members_csv_path):
         mlflow.log_param("random_seed", RANDOM_SEED)
         mlflow.log_param("cv_strategy", "StratifiedKFold")
         mlflow.log_param("cv_folds", CV_FOLDS)
-        mlflow.log_param("cv_shuffle", True)
+        mlflow.log_param("cv_shuffle", "true")
         mlflow.log_artifact(partitions_csv_path, artifact_path="protocol")
         mlflow.log_artifact(members_csv_path, artifact_path="protocol")
         return run.info.run_id

@@ -32,9 +32,15 @@ cada uno en su propia cuenta.
 ## Fase 2 — ✅ RESUELTO
 
 Run `protocol` registrado en `http://3.208.78.52:5000` (experimento `nlp-lab2-sentiment140`),
-`run_id=c19f96b4083a4b8abe4329a410a56cba`, status `FINISHED`, ambos artefactos
+`run_id=0c141bf7df7e42289e25e68748f3a43d`, status `FINISHED`, ambos artefactos
 (`protocol/members.csv`, `protocol/partitions.csv`) subidos correctamente vía el proxy.
 Este es el `lab_protocol_run_id` real a usar en todos los runs experimentales siguientes.
+
+**Gotcha encontrado y corregido:** `mlflow.log_param("cv_shuffle", True)` (booleano de Python)
+se guarda como el string `"True"` — la guía exige exactamente `cv_shuffle=true` (minúscula).
+Se corrigió a `mlflow.log_param("cv_shuffle", "true")` en `pipeline/mlflow_logging.py`, se borró
+el run con el valor incorrecto y se volvió a registrar. Verificado parámetro por parámetro
+contra el Anexo A.2 — los 8 params y los 2 artefactos coinciden exactamente.
 
 ## Fase 3 — Dry-run local de T0 y B0 (validar el pipeline end-to-end) — ✅ RESUELTO
 
