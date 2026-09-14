@@ -24,24 +24,30 @@ Ver [MIEMBROS.md](MIEMBROS.md) para el mapeo `member_id` ↔ integrante ↔ Note
 
 | Componente | Estado |
 |---|---|
-| MLflow Tracking Server | ✅ Corriendo en EC2 `mlflow` (`http://3.90.102.99:5000`), MLflow 3.1.4 verificado funcional |
-| SageMaker Notebook Instances (una por integrante) | ✅ Creadas (`nlp-lab2-e01` a `nlp-lab2-e05`), rol `LabRole` |
+| MLflow Tracking Server | ✅ Corriendo en EC2 m5.large `mlflow` (`http://3.208.78.52:5000`), `--serve-artifacts` + `--artifacts-destination` verificado con un run de prueba (artefacto subido, run `FINISHED`) |
+| SageMaker Notebook Instance | ⏳ Se crea **una sola** (Julián, E01), al final, para validar el pipeline end-to-end — ver "Cambio de estrategia" abajo |
 | Dataset (Sentiment140, revisión fija) | ✅ Cargado y verificado: 1.360.000 train / 240.000 test, coincide exacto con la guía |
 | Muestra estratificada (200.000, semilla 42) + 3 folds | ✅ Generados en `protocol/partitions.csv` (folds balanceados 66.667/66.667/66.666) |
 | `protocol/members.csv` | ✅ Generado con el mapeo de `MIEMBROS.md` |
-| Experimento `nlp-lab2-sentiment140` en MLflow | ✅ Creado |
+| Experimento `nlp-lab2-sentiment140` en MLflow | ⏳ Se recrea en el servidor nuevo (el anterior quedó en una cuenta desactivada) |
 | Código del pipeline (`pipeline/`: config, data, preprocessing, representation, classifier, mlflow_logging) | ✅ Escrito, probado localmente contra el dataset real |
 | API FastAPI (`api/main.py`: `/api/v1/predict`, `/audit/*`, `/health`) | ✅ Escrita contra el contrato del Anexo A.5, aún sin desplegar |
-| **Run de protocolo registrado en MLflow (con artefactos)** | ⚠️ **Bloqueado** — ver nota abajo |
-| T0 / B0 / comparaciones obligatorias / ablación / modelo final | ❌ Pendiente (depende de que el bloqueo de abajo se resuelva) |
+| Run de protocolo registrado en MLflow (con artefactos) | ⏳ Pendiente de re-registrar en el servidor nuevo (ya no bloqueado) |
+| T0 / B0 / comparaciones obligatorias / ablación / modelo final | ❌ Pendiente |
 | `reports/error_analysis.csv` / `.md` | ❌ Pendiente |
 
-### ⚠️ Bloqueos activos
+### Cambio de estrategia — una SageMaker por cuenta individual, no 5 en una cuenta
 
-1. **Cuenta de AWS Academy desactivada** (`AWS account deactivated at 2026-09-12T10:06:26-07:00`) — no es falta de presupuesto ($4.3 de $50 usado). **Causa identificada**: según la documentación oficial de Vocareum, es el código de estado `SUSPENDED9` — *"Account has exceeded Sagemaker limit (fraud)"* — un guardrail de concurrencia de SageMaker que salta al crear varias Notebook Instances en poco tiempo (creamos las 5 en menos de 2 minutos). Reportado al profesor con esta explicación para que reactive la cuenta y, de paso, confirme el límite de concurrencia configurado. Los servicios ya desplegados (MLflow, este mismo repo) siguen respondiendo por HTTP mientras la cuenta esté así, pero no se pueden crear/gestionar recursos nuevos por CLI/consola.
-2. **El servidor MLflow no tiene `--serve-artifacts` habilitado**: al intentar registrar el run de protocolo real, el registro de tags/params/métricas funcionó, pero la subida de artefactos (`protocol/partitions.csv`, `protocol/members.csv`) falló con `PermissionError: /opt/mlflow` — el cliente intenta escribir directo en una ruta que solo existe en el servidor. El run fallido se borró para no dejar basura. **Hay que reiniciar el servidor MLflow con `--serve-artifacts`** (o un artifact store remoto tipo S3) antes de poder registrar cualquier run con artefactos — esto incluye el run de protocolo y todos los runs experimentales/finales, que exigen artefactos obligatorios (Anexo A.2).
+Dos cuentas de AWS Academy seguidas se desactivaron (`voc-cancel-cred`) al crear **5 SageMaker Notebook Instances simultáneas** dentro de una misma cuenta — la segunda vez incluso espaciando las creaciones ~20-30 min, lo que confirmó que el disparador es la **cantidad concurrente**, no la velocidad de creación.
 
-**Por precaución, cuando se reactive la cuenta:** crear/usar las Notebook Instances de a una, espaciadas en el tiempo (no las 5 de golpe) para no volver a disparar el guardrail. Ver [`PLAN.md`](PLAN.md).
+El profesor (Juan Pablo) confirmó por qué: **cada integrante del equipo debe tener su propia cuenta individual de AWS Academy**, y dentro de esa cuenta puede tener varios notebooks — no tiene sentido (ni el curso lo permite) que una sola cuenta sostenga 5 instancias SageMaker a la vez, "si esto fuera una cuenta empresarial, ¿sabes cuánto costaría eso?". Agregó a Julián a una cuenta nueva de forma individual, advirtiendo que si se vuelve a bloquear no podrá asignar otra.
+
+**Estrategia revisada:**
+1. Julián deja todo (Taller 1, servidor MLflow, código, protocolo) funcionando y verificado en su cuenta individual nueva.
+2. Al final — y solo al final — crea **una única** Notebook Instance propia para validar el pipeline completo end-to-end (T0/B0 con los folds reales, registro en MLflow con `notebook_arn` y metadata real).
+3. Con eso validado, se documenta el procedimiento exacto para que cada uno de los otros 4 integrantes lo repita **en su propia cuenta individual** (no en una compartida) — sección pendiente en este README una vez el paso 2 esté confirmado.
+
+Ver [`PLAN.md`](PLAN.md) para el detalle fase por fase.
 
 ## Estructura
 

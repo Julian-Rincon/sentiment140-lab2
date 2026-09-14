@@ -19,7 +19,7 @@ from mlflow import MlflowClient
 from mlflow.exceptions import MlflowException
 from pydantic import BaseModel, field_validator
 
-MLFLOW_TRACKING_URI = "http://3.90.102.99:5000"
+MLFLOW_TRACKING_URI = "http://3.208.78.52:5000"
 EXPERIMENT_NAME = "nlp-lab2-sentiment140"
 MODEL_NAME = "sentiment140"
 MODEL_ALIAS = "champion"

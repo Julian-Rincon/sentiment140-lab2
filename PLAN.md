@@ -1,26 +1,32 @@
-# Plan para retomar el Laboratorio II en cuanto reactiven la cuenta
+# Plan para retomar el Laboratorio II (cuenta individual nueva)
 
-Orden de ejecución. **Las SageMaker Notebook Instances se usan de último a propósito**
-(por precaución: sospechamos que crear varias de golpe pudo disparar el guardrail
-que desactivó la cuenta) — todo lo demás se prepara y valida antes de tocarlas.
+**Confirmado por el profesor:** cada integrante debe tener su propia cuenta de AWS Academy,
+con **una** Notebook Instance (puede tener varios notebooks adentro). Nada de 5 instancias
+SageMaker simultáneas en una sola cuenta — eso fue lo que disparó el guardrail dos veces.
 
-## Fase 0 — Verificación al reactivar (sin tocar SageMaker)
+Orden de ejecución revisado: todo lo que no es SageMaker se deja listo y verificado
+primero; la única Notebook Instance (de Julián, E01) se crea **al final**, para
+validar el pipeline end-to-end antes de indicarle al resto del equipo cómo replicarlo
+cada uno en su propia cuenta.
 
-1. Confirmar `aws sts get-caller-identity` y `aws ec2 describe-instances` funcionan de nuevo.
-2. **No** arrancar ni entrar a las notebooks `nlp-lab2-e01..e05` todavía.
-3. Confirmar que la instancia EC2 `mlflow` sigue `running` (ya vimos que aguantó la desactivación).
+## Fase 0 — Verificación (cuenta individual nueva, ya activa)
 
-## Fase 1 — Arreglar el servidor MLflow (bloqueante)
+1. ✅ `aws sts get-caller-identity` confirma la cuenta nueva (`170100747321`), sin bloqueo `voc-cancel-cred`.
+2. Taller 1 (EC2 + Lambda Function URL + API Gateway) redesplegado y verificado en esta cuenta — ver `Actividad 1/aws_apis/STATUS.md`.
+3. **No** crear ninguna SageMaker Notebook Instance todavía — eso es la Fase 4, la última.
 
-1. SSH a la instancia `mlflow` (EC2 Instance Connect, como con la de Activity 1).
-2. Ver cómo está arrancado el proceso de MLflow actualmente (`ps aux | grep mlflow`, revisar el systemd unit o el comando usado).
-3. Reiniciarlo agregando `--serve-artifacts` (o configurar `--default-artifact-root` a algo accesible remotamente si prefieren S3 en vez de disco local). Sin esto, ningún run con artefactos se puede registrar desde fuera del servidor.
-4. Verificar con un run de prueba mínimo (logear un param + un artefacto chico) que ya no falla.
+## Fase 1 — Arreglar el servidor MLflow (bloqueante) — ✅ RESUELTO
+
+1. Instancia EC2 m5.large nueva (`i-0fb98819c3d73ff82`, `3.208.78.52`) en la cuenta individual.
+2. Servidor MLflow 3.16.0 con `mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////opt/mlflow/mlflow.db --serve-artifacts --artifacts-destination /opt/mlflow/artifacts --allowed-hosts "3.208.78.52,3.208.78.52:5000"`.
+3. **Gotcha nuevo:** `--default-artifact-root <ruta local>` anula el proxy `mlflow-artifacts:/` y reproduce el mismo `PermissionError` de antes — hay que usar `--artifacts-destination` (no `--default-artifact-root`) para que los experimentos nuevos usen el esquema proxied.
+4. **Gotcha nuevo (mlflow 3.x):** el servidor rechaza requests externas con `403 Invalid Host header` (protección DNS-rebinding) si no se pasa `--allowed-hosts` con la IP pública.
+5. Verificado con un run de prueba: param + métrica + artefacto → `FINISHED`, artefacto listado correctamente. Run de prueba borrado.
 
 ## Fase 2 — Re-registrar el protocolo (local, sin SageMaker todavía)
 
 1. Correr de nuevo `pipeline/mlflow_logging.log_protocol_run(...)` con los archivos ya generados en `protocol/` (no hay que regenerarlos, ya están en el repo y son deterministas).
-2. Confirmar en la UI de MLflow (`http://3.90.102.99:5000`) que el run de protocolo quedó `FINISHED` con sus dos artefactos.
+2. Confirmar en la UI de MLflow (`http://3.208.78.52:5000`) que el run de protocolo quedó `FINISHED` con sus dos artefactos.
 3. Guardar el `protocol_run_id` real (se necesita para todos los runs siguientes vía `lab_protocol_run_id`).
 
 ## Fase 3 — Dry-run local de T0 y B0 (validar el pipeline end-to-end)
@@ -39,15 +45,29 @@ gastar tiempo/recursos en las notebooks oficiales.
 3. Revisar el tie-break de T0 (debe predecir `negative` en empate — `DummyClassifier`
    no lo garantiza, puede necesitar un ajuste manual, ver comentario en `classifier.py`).
 
-## Fase 4 — Ejecución oficial desde SageMaker (última fase, con cuidado)
+## Fase 4 — Validación end-to-end con UNA sola SageMaker (Julián, E01)
 
-**Abrir las notebooks de a una, no las 5 al tiempo**, y espaciar las acciones
-en el tiempo por si el guardrail de Academy es sensible a ráfagas de actividad.
+Confirmado por el profesor: cada integrante tiene su **propia** cuenta de AWS Academy con
+**una** Notebook Instance (no 5 en una cuenta compartida). Esta fase es solo para que Julián
+valide que el pipeline completo funciona de punta a punta desde SageMaker real — el resto
+del equipo repite este mismo procedimiento **cada uno en su propia cuenta** (Fase 4b), no aquí.
 
-1. Julián (E01) abre `nlp-lab2-e01`, copia el código de `pipeline/` + `api/`,
-   corre T0 y B0 con los 3 folds reales, registra ambos runs con
-   `lab_member_id=E01`, `notebook_arn` correcto y el `provenance/sagemaker-resource-metadata.json`
-   real (copiado sin editar desde `/opt/ml/metadata/resource-metadata.json`).
+1. Crear **una única** Notebook Instance (`nlp-lab2-e01`) en la cuenta individual de Julián, rol `LabRole`.
+2. Abrirla, copiar el código de `pipeline/` + `api/`, correr T0 y B0 con los 3 folds reales,
+   registrar ambos runs con `lab_member_id=E01`, `notebook_arn` correcto y el
+   `provenance/sagemaker-resource-metadata.json` real (copiado sin editar desde
+   `/opt/ml/metadata/resource-metadata.json`).
+3. Correr al menos una de las comparaciones obligatorias de preprocesamiento/representación/clasificador
+   como prueba de que el circuito completo (SageMaker → MLflow → artefactos) funciona.
+4. Con esto validado, **detener o eliminar la Notebook Instance** (no dejarla corriendo sin uso)
+   y pasar a la Fase 4b.
+
+## Fase 4b — Documentar para el resto del equipo (cada uno en su propia cuenta)
+
+1. Escribir instrucciones paso a paso (nueva sección en este README) para que Andrés (E02),
+   Juan (E03), Miguel (E04) y Paula (E05) repitan lo de la Fase 4 **cada uno en su propia
+   cuenta individual de AWS Academy** — pedirle al profesor que los agregue si no la tienen.
+   Cada uno apunta su MLflow al mismo tracking server (`http://3.208.78.52:5000`), no crea uno propio.
 2. Repartir las comparaciones obligatorias entre los 5 integrantes (mínimo 3
    configuraciones válidas cada uno, en al menos 2 etapas — ver sección 3 de
    la guía): preprocesamiento (`P_STOPWORDS`, `P_STOPWORDS_NEGATION`, `P_LEMMA`,
