@@ -29,11 +29,24 @@ cada uno en su propia cuenta.
 2. Confirmar en la UI de MLflow (`http://3.208.78.52:5000`) que el run de protocolo quedó `FINISHED` con sus dos artefactos.
 3. Guardar el `protocol_run_id` real (se necesita para todos los runs siguientes vía `lab_protocol_run_id`).
 
-## Fase 3 — Dry-run local de T0 y B0 (validar el pipeline end-to-end)
+## Fase 2 — ✅ RESUELTO
+
+Run `protocol` registrado en `http://3.208.78.52:5000` (experimento `nlp-lab2-sentiment140`),
+`run_id=c19f96b4083a4b8abe4329a410a56cba`, status `FINISHED`, ambos artefactos
+(`protocol/members.csv`, `protocol/partitions.csv`) subidos correctamente vía el proxy.
+Este es el `lab_protocol_run_id` real a usar en todos los runs experimentales siguientes.
+
+## Fase 3 — Dry-run local de T0 y B0 (validar el pipeline end-to-end) — ✅ RESUELTO
 
 Esto se corre **desde esta máquina o cualquier entorno de prueba**, NO desde
 SageMaker todavía — el objetivo es confirmar que el código funciona antes de
 gastar tiempo/recursos en las notebooks oficiales.
+
+Corrido sobre una submuestra de 3.000 filas (de las 200.000 de `protocol/partitions.csv`,
+mismos folds): T0 macro F1 ≈ 0.327 (esperado, baseline dummy), B0 macro F1 ≈ 0.706
+(logistic regression + BOW, resultado sano). `preprocessing.py`, `representation.py`
+y `classifier.py` corren sin errores. Runs de prueba **no** registrados en MLflow
+(solo impresos en consola), tal como indica el punto 2 de abajo.
 
 1. Entrenar T0 y B0 sobre uno o dos folds pequeños (o una submuestra) solo para
    confirmar que `pipeline/preprocessing.py`, `representation.py` y
