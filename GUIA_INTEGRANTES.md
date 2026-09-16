@@ -49,6 +49,13 @@ resultados (tuyos y de los demás) en cualquier momento, simplemente abre esa mi
 **http://3.208.78.52:5000** — ahí está la UI web de MLflow con todos los runs del experimento
 `nlp-lab2-sentiment140`, filtrable por tags (`lab_member_id`, `lab_stage`, etc.).
 
+**Nota de navegación:** al entrar, la página de inicio de MLflow 3.x aterriza en una vista "Overview"
+pensada para trazas de LLM, que para este laboratorio se ve vacía — es normal. Para ver la **tabla de
+runs** (con métricas, tags y artefactos de cada configuración), entra al experimento
+`nlp-lab2-sentiment140` y ve a la URL `http://3.208.78.52:5000/#/experiments/2/runs` directamente. Para
+ver un run específico, `http://3.208.78.52:5000/#/experiments/2/runs/<run_id>` (el link que imprime
+`mlflow.start_run(...)` en la consola).
+
 ## 4. Procedencia (obligatorio en cada run)
 
 La guía exige que cada run experimental incluya el archivo de metadata real de tu Notebook Instance, sin
