@@ -11,7 +11,7 @@ registra sin editar como `provenance/sagemaker-resource-metadata.json` en cada r
 | member_id | Integrante | notebook_arn |
 |---|---|---|
 | E01 | Julián Rincón | `arn:aws:sagemaker:us-east-1:170100747321:notebook-instance/nlp-lab2-e01` |
-| E02 | Andrés Castro | *pendiente — se completa cuando cree su Notebook Instance* |
+| E02 | Andrés Castro | `arn:aws:sagemaker:us-east-1:010843061983:notebook-instance/nlp-lab2-e02` |
 | E03 | Juan Hurtado | *pendiente — se completa cuando cree su Notebook Instance* |
-| E04 | Miguel Flechas | *pendiente — se completa cuando cree su Notebook Instance* |
+| E04 | Miguel Flechas | `arn:aws:sagemaker:us-east-1:679786170402:notebook-instance/nlp-lab2-e04` |
 | E05 | Paula Caballero | *pendiente — se completa cuando cree su Notebook Instance* |
