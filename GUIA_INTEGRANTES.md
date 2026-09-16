@@ -112,6 +112,19 @@ run_id, mean_f1, std_f1 = log_experimental_run(
 print(run_id, mean_f1, std_f1)
 ```
 
+**Importante — el valor de `stage` es el `lab_stage` exacto que exige el Anexo A.4, no una descripción libre.**
+Usa exactamente uno de estos strings (sensible a mayúsculas/minúsculas), según qué `experiment_id_tag` estés corriendo:
+
+| `experiment_id_tag` | `stage` exacto |
+|---|---|
+| `T0` | `reference` |
+| `B0` | `baseline` |
+| `P_STOPWORDS`, `P_STOPWORDS_NEGATION`, `P_LEMMA`, `P_ELONGATION`, `P_EMOJI` | `preprocessing` |
+| `R_BOW`, `R_TFIDF_UNI`, `R_TFIDF_UNI_BI`, `R_SPACY` | `representation` |
+| `C_LOGREG`, `C_LINEAR_SVM`, `C_SGD` | `classifier` (en inglés, no "clasificador") |
+| `ABLATION` | `ablation` |
+| `EXTRA` | la etapa real a la que pertenezca (`preprocessing`, `representation`, `classifier` o `ablation`) |
+
 Corre primero **T0 y B0** con tu propia notebook para confirmar que el circuito completo funciona antes de
 tus configuraciones asignadas (usa `config.config_t0()` / `config.config_b0()` de la misma forma).
 
