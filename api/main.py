@@ -8,8 +8,10 @@ Los endpoints /audit/* consultan MLflow EN TIEMPO DE EJECUCIÓN (nunca una
 copia local) — si MLflow no está disponible, devuelven 503 mlflow_unavailable
 tal como exige el Anexo A.5.
 """
+import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import mlflow
 from fastapi import FastAPI, HTTPException, Request
@@ -104,14 +106,19 @@ class PredictIn(BaseModel):
 
 
 def _resolve_champion_model():
-    """sentiment140@champion -> (model_version, run_id). 404/409 según A.5."""
+    """sentiment140@champion -> (model_version, run_id). 404/409 según A.5.
+
+    No usa _mlflow_call aquí: necesitamos distinguir "el alias no existe" (404
+    champion_not_found) de "MLflow no está disponible" (503 mlflow_unavailable),
+    y _mlflow_call colapsaría ambos casos en 503.
+    """
     client = _client()
     try:
-        mv = _mlflow_call(client.get_model_version_by_alias, MODEL_NAME, MODEL_ALIAS)
-    except HTTPException:
-        raise
+        mv = client.get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS)
     except MlflowException as exc:
-        raise HTTPException(status_code=404, detail="champion_not_found") from exc
+        if exc.error_code == "RESOURCE_DOES_NOT_EXIST":
+            raise HTTPException(status_code=404, detail="champion_not_found") from exc
+        raise HTTPException(status_code=503, detail="mlflow_unavailable") from exc
 
     run_id = mv.run_id
     run = _mlflow_call(client.get_run, run_id)
@@ -199,6 +206,33 @@ def _list_run_artifacts(client, run_id, path=""):
     return sorted(paths)
 
 
+def _run_detail(client, r):
+    """Arma el detalle de un run para /audit/runs. Reutiliza un único listado
+    recursivo de artefactos tanto para el campo 'artifacts' como para saber si
+    existe run/configuration.json — evitar una segunda llamada de red por run
+    es lo que mantiene este endpoint dentro del límite de 10s con muchos runs."""
+    run_type = r.data.tags.get("lab_run_type")
+    artifacts = _list_run_artifacts(client, r.info.run_id)
+    configuration = None
+    if run_type in ("experiment", "final") and "run/configuration.json" in artifacts:
+        try:
+            local_path = client.download_artifacts(r.info.run_id, "run/configuration.json")
+            with open(local_path) as fh:
+                configuration = json.load(fh)
+        except (MlflowException, OSError, json.JSONDecodeError):
+            configuration = None
+    return {
+        "run_id": r.info.run_id,
+        "status": r.info.status,
+        "run_type": run_type,
+        "params": dict(r.data.params),
+        "metrics": dict(r.data.metrics),
+        "tags": dict(r.data.tags),
+        "artifacts": artifacts,
+        "configuration": configuration,
+    }
+
+
 @app.get("/audit/runs")
 def audit_runs():
     client = _client()
@@ -208,41 +242,10 @@ def audit_runs():
     all_runs = _mlflow_call(client.search_runs, [experiment.experiment_id], filter_string="")
     presented = [r for r in all_runs if r.data.tags.get("lab_run_type") in ("protocol", "experiment", "final")]
 
-    out = []
-    for r in presented:
-        configuration = None
-        run_type = r.data.tags.get("lab_run_type")
-        if run_type in ("experiment", "final"):
-            local_path = _mlflow_call(client.download_artifacts, r.info.run_id, "run/configuration.json") \
-                if _artifact_exists(client, r.info.run_id, "run/configuration.json") else None
-            if local_path:
-                import json
-                try:
-                    with open(local_path) as fh:
-                        configuration = json.load(fh)
-                except (json.JSONDecodeError, OSError):
-                    configuration = None
-        out.append({
-            "run_id": r.info.run_id,
-            "status": r.info.status,
-            "run_type": run_type,
-            "params": dict(r.data.params),
-            "metrics": dict(r.data.metrics),
-            "tags": dict(r.data.tags),
-            "artifacts": _list_run_artifacts(client, r.info.run_id),
-            "configuration": configuration,
-        })
+    with ThreadPoolExecutor(max_workers=32) as pool:
+        out = list(pool.map(lambda r: _run_detail(client, r), presented))
     out.sort(key=lambda x: x["run_id"])
     return {"runs": out}
-
-
-def _artifact_exists(client, run_id, path):
-    try:
-        parent = "/".join(path.split("/")[:-1])
-        names = {f.path for f in client.list_artifacts(run_id, parent)}
-        return path in names
-    except MlflowException:
-        return False
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +318,6 @@ def audit_contributions():
 def audit_model():
     client = _client()
     mv, run = _resolve_champion_model()
-    import json
     config = None
     try:
         local_path = client.download_artifacts(run.info.run_id, "run/configuration.json")

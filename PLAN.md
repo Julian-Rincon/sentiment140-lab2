@@ -104,13 +104,36 @@ del equipo repite este mismo procedimiento **cada uno en su propia cuenta** (Fas
    `lab_selected_experiment_run_id` apuntando al run experimental elegido.
 6. Registrar el modelo en MLflow Model Registry: nombre `sentiment140`, alias `champion`.
 
+## Fase 4c — QA de `api/main.py` contra el Anexo A.5 (2026-09-16) — ✅ RESUELTO
+
+Corrida local (`uvicorn` en `127.0.0.1:8010`, apuntando al MLflow real) con un QA de 32 casos: los 6
+endpoints, cada ejemplo inválido exacto del A.6 (`{}`, `text=null`, `""`, `"   "`, `[]`, `["ok",""]`,
+`["ok",7]`, texto >1000 chars, lote >32), estructura exacta de cada respuesta, orden lexicográfico donde
+la guía lo exige, y 8 solicitudes concurrentes. **32/32 PASS** tras corregir 2 bugs reales encontrados:
+
+1. **`/audit/model` con `sentiment140@champion` inexistente devolvía `503 mlflow_unavailable` en vez de
+   `404 champion_not_found`** — `_resolve_champion_model` envolvía la llamada con `_mlflow_call`, que
+   intercepta *cualquier* `MlflowException` (incluida "no existe el alias") y la convierte en 503 antes
+   de que el código pudiera distinguir "no existe" de "MLflow caído". Corregido: `_resolve_champion_model`
+   ahora captura `MlflowException` directamente y solo devuelve 404 cuando `error_code ==
+   "RESOURCE_DOES_NOT_EXIST"`, 503 en cualquier otro caso.
+2. **`/audit/runs` tardaba 66-68 segundos** (el límite de la guía son 10s) — por cada run hacía una
+   llamada `list_artifacts` para *comprobar si existe* `run/configuration.json` y otra `download_artifacts`
+   para bajarlo, además de una tercera (recursiva) para el campo `artifacts` — 3 llamadas de red
+   redundantes por run, en serie. Corregido: un solo listado recursivo de artefactos por run (reutilizado
+   tanto para `artifacts` como para decidir si hay que descargar `configuration.json`), procesado en
+   paralelo con `ThreadPoolExecutor` entre runs. Quedó en ~6s con los 15 runs actuales. También se subió
+   el servidor MLflow de 4 a 8 `--workers` para dar más margen de concurrencia real cuando varios
+   integrantes y el evaluador consulten a la vez.
+
 ## Fase 5 — Análisis de errores y despliegue
 
 1. Muestrear ≥20 errores del modelo final (semilla 42), clasificar por categoría
    (A.6), generar `reports/error_analysis.csv` y `.md`, adjuntarlos como
    artefactos del run final.
-2. Desplegar `api/main.py` (ya escrita) — verificar los 6 endpoints contra el
-   `sentiment140@champion` real.
+2. Desplegar `api/main.py` (ya escrita y verificada localmente, ver Fase 4c) — falta el
+   despliegue público (AWS Academy). Verificar los 6 endpoints contra el
+   `sentiment140@champion` real una vez desplegada.
 3. Confirmar accesibilidad externa de la API y del Tracking Server antes de
    entregar (sección 11 de la guía).
 
