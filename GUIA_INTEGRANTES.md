@@ -145,20 +145,27 @@ artefacto del run de protocolo y debe quedar con el ARN real de cada uno.
 
 Cada integrante necesita mínimo 3 configuraciones válidas en al menos 2 etapas distintas (T0/B0 no cuentan).
 
-| Integrante | member_id | Configuraciones asignadas | Etapas |
-|---|---|---|---|
-| Julián Rincón | E01 | `P_STOPWORDS`, `P_STOPWORDS_NEGATION`, `R_BOW` | preprocesamiento, representación |
-| Andrés Castro | E02 | `P_LEMMA`, `P_ELONGATION`, `R_TFIDF_UNI` | preprocesamiento, representación |
-| Juan Hurtado | E03 | `P_EMOJI`, `R_TFIDF_UNI_BI`, `R_SPACY` | preprocesamiento, representación |
-| Miguel Flechas | E04 | `C_LOGREG`, `C_LINEAR_SVM`, + 1 configuración `EXTRA` (a definir en equipo) | clasificador, + 1 más |
-| Paula Caballero | E05 | `C_SGD`, + 2 configuraciones `EXTRA` (a definir en equipo) | clasificador, + 1 más |
+| Integrante | member_id | Configuraciones asignadas | Etapas | Estado |
+|---|---|---|---|---|
+| Julián Rincón | E01 | `P_STOPWORDS`, `P_STOPWORDS_NEGATION`, `R_BOW` | preprocesamiento, representación | ✅ Listo |
+| Andrés Castro | E02 | `P_LEMMA`, `P_ELONGATION`, `R_TFIDF_UNI` | preprocesamiento, representación | ✅ Listo |
+| Miguel Flechas | E04 | `C_LOGREG`, `C_LINEAR_SVM`, `P_EMOJI` | clasificador, preprocesamiento | ⏳ Falta `P_EMOJI` |
+| Juan Hurtado | E03 | `R_TFIDF_UNI_BI`, `R_SPACY`, `C_SGD` | representación, clasificador | ⏳ Sin empezar |
+| Paula Caballero | E05 | 3 configuraciones `EXTRA` (ver abajo) | preprocesamiento, clasificador | ⏳ Sin empezar |
 
-Las 12 comparaciones obligatorias (5 preprocesamiento + 4 representación + 3 clasificador) quedan cubiertas
-entre Julián/Andrés/Juan. Miguel y Paula cubren los 3 clasificadores y completan su mínimo individual con
-configuraciones `EXTRA` — el equipo las define juntos una vez estén los resultados de preprocesamiento y
-representación (por ejemplo, combinar dos decisiones que ya funcionaron bien, o ajustar hiperparámetros del
-clasificador seleccionado). La ablación (después de elegir el pipeline candidato) también cuenta como etapa
-para el mínimo individual — es otra opción natural para Miguel y Paula si hace falta.
+Con esto las 12 comparaciones obligatorias (5 preprocesamiento + 4 representación + 3 clasificador) quedan
+cubiertas entre Julián, Andrés, Miguel y Juan — nadie tiene que inventar una combinación para completar el
+catálogo. Solo Paula, al no quedarle ninguna comparación obligatoria libre, necesita 3 configuraciones
+`EXTRA` para llegar a su mínimo individual (3 configs, 2 etapas). Configuraciones sugeridas para su EXTRA:
+
+| `experiment_id_tag` | Qué cambiar respecto a B0 | `stage` |
+|---|---|---|
+| `EXTRA` (ej. nombre `EXTRA_NEG_LEMMA`) | `stopwords=remove_preserve_negation` **y** `lemmatize=true` a la vez (combinación, no está en el catálogo obligatorio) | `preprocessing` |
+| `EXTRA` (ej. nombre `EXTRA_ELONG_EMOJI`) | `elongation=normalize` **y** `emoji=text` a la vez | `preprocessing` |
+| `EXTRA` (ej. nombre `EXTRA_SGD_TUNED`) | `C_SGD` pero con hiperparámetros distintos a los de Juan (ej. `loss="modified_huber"` en vez del default) | `classifier` |
+
+La ablación (después de elegir el pipeline candidato) también cuenta como etapa para el mínimo individual —
+si al final a alguien le hace falta una configuración más, esa es otra opción natural.
 
 Función de configuración por comparación (`pipeline/config.py`):
 
