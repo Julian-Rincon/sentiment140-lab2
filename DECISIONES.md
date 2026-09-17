@@ -47,3 +47,34 @@ Los runs originales de Miguel y Juan (con BoW) **no se tocan ni se borran** — 
 como parte de su contribución individual respectiva (el Anexo A.2 no exige que cada `lab_experiment_id`
 sea único en el experimento; conviven ambas versiones). Los runs nuevos (con `R_TFIDF_UNI_BI`) son
 los que se usan para la selección del pipeline candidato en la Fase 4.
+
+## Pipeline candidato, ablación y revisión final
+
+**Candidato** (tras las comparaciones obligatorias): `C_LOGREG` + `R_TFIDF_UNI_BI` + preprocesamiento
+B0, run `e66a61d5fc9749549203feefdcffded6`, `macro_f1_mean=0.7998`. Difiere de B0 en una sola decisión
+(`representation`), por lo que la guía exige exactamente una ablación (Sección 4).
+
+**Ablación**: se revirtió `representation` a la forma de B0 (`bow`, `ngram_range=[1,1]`) manteniendo
+fijo el resto. Run `7e71e6b0e8c74170b32cb248fcfe3118`, `macro_f1_mean=0.7814` (idéntico a B0, como se
+espera al revertir exactamente esa decisión), `macro_f1_delta=0.0184`. Confirma que la mejora del
+candidato proviene realmente de TF-IDF unigramas+bigramas y no de ruido experimental.
+
+**Revisión final (`max_features=300000`)**: al reentrenar sobre los 1.360.000 registros completos de
+train, un vocabulario TF-IDF sin acotar generó ~3.44M términos y agotó la memoria de la instancia
+(`ml.t3.medium`, 4GB), matando el kernel silenciosamente. Se acotó el vocabulario a los 300.000
+términos más frecuentes — práctica estándar de la industria para escalar TF-IDF a millones de
+documentos con memoria limitada; es una decisión de la etapa de representación (`representation.
+parameters.max_features`), no un cambio de clasificador ni de las etapas ya seleccionadas.
+
+Como esto hace que la configuración final ya **no sea idéntica** a la del candidato original (Anexo
+A.3: la igualdad se evalúa sobre todos los campos, incluidos `representation.parameters`), se siguió
+el mecanismo explícito de la Sección 4 para este caso ("el equipo puede... elegir una configuración
+revisada... evalúe esa configuración con los mismos tres folds y regístrela como EXTRA"):
+
+1. Se evaluó la configuración revisada (`R_TFIDF_UNI_BI` + `max_features=300000` + `C_LOGREG`) con
+   los mismos 3 folds del protocolo — run `EXTRA` `953498802691496697e0d8161ccd555a`,
+   `lab_configuration_id=C_LOGREG_300K`, `macro_f1_mean=0.8006` (std=0.0005, ligeramente mejor que el
+   candidato original: acotar el vocabulario también actúa como regularización).
+2. El run final referencia este run `EXTRA` mediante `lab_selected_experiment_run_id`, y ambos
+   comparten `lab_configuration_id=C_LOGREG_300K` con `run/configuration.json` exactamente
+   equivalentes — verificado campo a campo.

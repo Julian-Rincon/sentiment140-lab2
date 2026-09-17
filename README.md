@@ -18,17 +18,27 @@ Ver [MIEMBROS.md](MIEMBROS.md) para el mapeo `member_id` ↔ integrante ↔ Note
 |---|---|
 | Protocolo experimental (dataset, muestra, folds) | ✅ Fijado — 200.000 registros, semilla 42, 3 folds `StratifiedKFold` |
 | Run de protocolo en MLflow (Anexo A.2) | ✅ Registrado, único, `FINISHED`, con `protocol/partitions.csv` y `protocol/members.csv` |
-| MLflow Tracking Server | ✅ En producción, con `--serve-artifacts` |
-| Código del pipeline (`pipeline/`) | ✅ Implementado y validado localmente contra el dataset real |
-| API FastAPI (`api/main.py`) | ✅ Implementada contra el Anexo A.5, pendiente de despliegue público |
-| T0 / B0 y comparaciones obligatorias | ⏳ Pendiente de ejecución desde SageMaker |
-| Ablación y modelo final (`sentiment140@champion`) | ⏳ Pendiente |
-| `reports/error_analysis.csv` / `.md` | ⏳ Pendiente |
-| `notebooks/experiment_audit.ipynb` | ⏳ Pendiente |
+| MLflow Tracking Server | ✅ En producción, con `--serve-artifacts`, accesible públicamente |
+| T0 / B0 y comparaciones obligatorias (los 5 integrantes) | ✅ Registradas, mínimo individual cumplido por los 5 (`valid_configurations>=3`, ≥2 etapas) |
+| Pipeline candidato, ablación y configuración final | ✅ Candidato `R_TFIDF_UNI_BI` + `C_LOGREG`, ablación de representación evaluada (`macro_f1_delta=0.0184`), revisión final con `max_features=300000` registrada como `EXTRA` |
+| Modelo final (`sentiment140@champion`) | ✅ Reentrenado con los 1.360.000 registros de train, evaluado una vez en test (`test_macro_f1=0.8244`), registrado en el Model Registry |
+| `reports/error_analysis.csv` / `.md` | ✅ 30 errores muestreados (semilla 42), registrados como artefactos del run final |
+| API FastAPI (`api/main.py`) | ✅ Implementada contra el Anexo A.5 y **desplegada públicamente** |
+| `notebooks/experiment_audit.ipynb` | ✅ Reconstruye protocolo, runs y contribuciones consultando MLflow en vivo |
+
+## Despliegue
+
+| Servicio | URL |
+|---|---|
+| API pública | `http://3.208.78.52:8000` (`/health`, `/api/v1/predict`, `/audit/*`) |
+| MLflow Tracking Server | `http://3.208.78.52:5000` |
+
+Ambos corren en la misma instancia EC2 (`mlflow-taller2`, cuenta AWS Academy 170100747321) como servicios `systemd` independientes (`mlflow.service`, `sentiment-api.service`), gestionados vía AWS Systems Manager (sin exponer una clave SSH adicional).
 
 El detalle de ejecución por fases está en [`PLAN.md`](PLAN.md). Instrucciones para que cada integrante corra
 sus configuraciones asignadas desde su propia cuenta de AWS Academy están en
-[`GUIA_INTEGRANTES.md`](GUIA_INTEGRANTES.md).
+[`GUIA_INTEGRANTES.md`](GUIA_INTEGRANTES.md). Las decisiones de preprocesamiento/representación seleccionadas
+y su justificación experimental están en [`DECISIONES.md`](DECISIONES.md).
 
 ## Arquitectura
 
