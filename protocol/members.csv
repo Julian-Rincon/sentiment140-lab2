@@ -1,6 +1,6 @@
 member_id,notebook_arn
 E01,arn:aws:sagemaker:us-east-1:170100747321:notebook-instance/nlp-lab2-e01
 E02,arn:aws:sagemaker:us-east-1:010843061983:notebook-instance/nlp-lab2-e02
-E03,arn:aws:sagemaker:us-east-1:PENDING:notebook-instance/nlp-lab2-e03
+E03,arn:aws:sagemaker:us-east-1:284743254744:notebook-instance/nlp-lab2-e03
 E04,arn:aws:sagemaker:us-east-1:679786170402:notebook-instance/nlp-lab2-e04
 E05,arn:aws:sagemaker:us-east-1:PENDING:notebook-instance/nlp-lab2-e05
