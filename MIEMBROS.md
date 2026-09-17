@@ -14,4 +14,4 @@ registra sin editar como `provenance/sagemaker-resource-metadata.json` en cada r
 | E02 | Andrés Castro | `arn:aws:sagemaker:us-east-1:010843061983:notebook-instance/nlp-lab2-e02` |
 | E03 | Juan Hurtado | `arn:aws:sagemaker:us-east-1:284743254744:notebook-instance/nlp-lab2-e03` |
 | E04 | Miguel Flechas | `arn:aws:sagemaker:us-east-1:679786170402:notebook-instance/nlp-lab2-e04` |
-| E05 | Paula Caballero | *pendiente — se completa cuando cree su Notebook Instance* |
+| E05 | Paula Caballero | `arn:aws:sagemaker:us-east-1:473323351650:notebook-instance/nlp-lab2-e05` |
