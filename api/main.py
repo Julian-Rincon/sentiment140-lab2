@@ -14,6 +14,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import mlflow
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -140,7 +141,7 @@ def _load_pyfunc_model(run_id):
 def predict(body: PredictIn):
     mv, run = _resolve_champion_model()
     model = _load_pyfunc_model(run.info.run_id)
-    predictions = list(model.predict(body.text))
+    predictions = list(model.predict(pd.DataFrame({"text": body.text})))
     return {"model_run_id": run.info.run_id, "predictions": predictions}
 
 
